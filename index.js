@@ -65,11 +65,25 @@ app.post("/participants", async (req, res) => {
     
 })
 
+app.get("/participants", async (req, res) => { 
+    const {user} = req.headers
+
+    if (user){
+        try{
+            const participantes = await db.collection("participantes").find({ name: { $ne: user } }).toArray()
+                console.log(participantes)
+                res.send(participantes)            
+        } catch (err){
+            res.status(500).send({ error: err.message })
+        }
+    } else {
+        res.status(401).send({ error: 'Não Autorizado' })
+    }   
+})
 
 
 
-
-
+app.listen(5000)
 
 
 
