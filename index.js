@@ -82,6 +82,59 @@ app.get("/participants", async (req, res) => {
 })
 
 
+//MENSAGEM
+app.post("/messages", async (req, res) => {
+    const { to, text, type } = req.body.user
+    const { user } = req.headers;
+
+    const bodyValidation = messageBodySchema.validate(req.body, {abortEarly: false});
+
+    const headerValidation = await db.collection('participantes').findOne({ name: user });
+
+    if (bodyValidation.hasOwnProperty('error') || !headerValidation) {
+        if (bodyValidation.error) {
+            res.status(422).send(
+                bodyValidation.error.details.map((detail) => detail.message)
+            );
+        } else {
+            res.sendStatus(422);
+        }
+    } else {
+        try {
+            const message = await db.collection('messages').insertOne({
+                from: user,
+                to: to,
+                text: text,
+                type: type,
+                time: dayjs().format('HH:mm:ss'),
+            });
+         
+            res.sendStatus(201);
+        } catch (err) {
+            console.log(err);
+        }    }    
+})
+
+
+app.get('/messages', async (req, res) => {
+    try {
+        const { limit } = req.query;
+        const { user } = req.headers;
+        if (limit) {
+            const requisicao = await db.collection('messages').find({ $or: [{ to: 'Todos' }, { to: user }, { from: user }, { type: 'message' }] }).toArray();
+            let messages = [...requisicao].reverse().slice(0, limit);
+            res.send(messages.reverse());
+        } else {
+            const requisicao = await db.collection('messages').find({ $or: [{ to: 'Todos' }, { to: user }, { from: user }] }).toArray();
+            let messages = [...requisicao];
+            res.send(messages);
+        }
+    } catch (error) {
+        console.log(error);
+    }
+});
+
+
 
 app.listen(5000)
 
